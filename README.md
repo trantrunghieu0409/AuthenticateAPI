@@ -32,6 +32,6 @@ On registration the API sends a verification email with a token and instructions
 <li>PUT /accounts/{id} - secure route that accepts PUT requests to update the details of the account with the specified id. The Admin role can update any account including its role, the User role can only update there own account details except for role.</li>
 
 <li>DELETE /accounts/{id} - secure route that accepts DELETE requests to delete the account with the specified id. The Admin role can delete any account, the User role can only delete their own account.</li>
-  
-  *References:
+</ul>  
+**References:
   - https://jasonwatmore.com/post/2022/02/26/net-6-boilerplate-api-tutorial-with-email-sign-up-verification-authentication-forgot-password#project-structure
