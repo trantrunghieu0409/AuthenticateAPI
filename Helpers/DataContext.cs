@@ -12,7 +12,7 @@ namespace AuthenticationAPI.Helpers
             _configuration = configuration;
         }
 
-        DbSet<Account> accounts;
+        public DbSet<Account> Accounts;
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
