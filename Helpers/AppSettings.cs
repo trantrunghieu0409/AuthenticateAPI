@@ -4,6 +4,6 @@
     {
         public string Secret { get; set; }
 
-        public DateTime? RefreshTokenTTL { get; set; }
+        public int RefreshTokenTTL { get; set; }
     }
 }

@@ -16,7 +16,7 @@ namespace AuthenticationAPI.Entities
         public string? Token { get; set; }
         
         [JsonIgnore]
-        public string? PasswordHarsh { get; set; }
+        public string? PasswordHash { get; set; }
 
 
         public DateTime CreatedDate => DateTime.UtcNow;
