@@ -20,7 +20,7 @@ namespace AuthenticationAPI.Authorization
             if (allowAnonymous)
                 return;
 
-            var account = context.HttpContext.Items["Account"] as Account;
+            var account = (Account)context.HttpContext.Items["Account"];
             if (account == null)
             {
                 context.Result = new JsonResult(new { message = "Unauthorized" }) { StatusCode = StatusCodes.Status401Unauthorized }; 

@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 
 namespace AuthenticationAPI.Entities
 {
-    [Owned]
     public class Account
     {
         public int Id { get; set; }
@@ -12,7 +11,6 @@ namespace AuthenticationAPI.Entities
         public string? Email { get; set; }
         public Role Role { get; set; }
 
-        public string? Username { get; set; }
         public string? Token { get; set; }
         
         [JsonIgnore]

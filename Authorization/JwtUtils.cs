@@ -20,15 +20,15 @@ namespace AuthenticationAPI.Authorization
             _appSettings = appSettings.Value;
         }
 
-        public string GenerateToken(Account account)
+        public string GenerateToken(Account account, int minutesAlive = 15)
         {
             var tokenHandelr = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[] { new Claim("id", account.Id.ToString()) }),
-                Expires = DateTime.UtcNow.AddMinutes(15),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.Aes128CbcHmacSha256)
+                Expires = DateTime.UtcNow.AddMinutes(minutesAlive),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandelr.CreateToken(tokenDescriptor);
 

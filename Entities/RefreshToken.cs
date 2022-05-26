@@ -1,7 +1,12 @@
-﻿namespace AuthenticationAPI.Entities
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+
+namespace AuthenticationAPI.Entities
 {
+    [Owned]
     public class RefreshToken
     {
+        [Key]
         public int Id { get; set; }
         public string? UserName { get; set; }
 
@@ -13,6 +18,7 @@
         public string? CreatedByIpAddress { get; set; }
 
         public string? ReplacedByToken { get; set; }
+        public string? RevokedByIp { get; set; }
 
         public bool IsExpired => DateTime.UtcNow >= ExpiredDate;
         public bool IsRevoked => RevokedDate != null;

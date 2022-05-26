@@ -21,7 +21,7 @@ namespace AuthenticationAPI.Authorization
             var accountId = jwtUtils.ValidateToken(token);
             if (accountId != null)
             {
-                context.Items["Account"] = accountService.GetAccountById((int)accountId);
+                context.Items["Account"] = accountService.GetAccountId((int)accountId);
             }
 
             await _next(context);
