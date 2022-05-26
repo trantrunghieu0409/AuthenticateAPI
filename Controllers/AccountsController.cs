@@ -37,22 +37,42 @@ namespace AuthenticationAPI.Controllers
             return response;
         }
 
+        [Authorize(Role.Admin)]
         [HttpGet]
         public IEnumerable<AccountResponse> GetAllAccounts()
         {
             return _accountService.GetAllAccounts();
         }
 
+        [Authorize(Role.Admin)]
         [HttpGet("{id:int}")]
         public ActionResult<AccountResponse> GetAccountById(int id)
         {
             return Ok(_accountService.GetAccountById(id));
         }
 
+        [Authorize(Role.Admin)]
         [HttpPost]
         public ActionResult<AccountResponse> CreateAccount(CreateRequest createRequest)
         {
             return Ok(_accountService.Create(createRequest));
+        }
+
+        [HttpPut("{id:int}")]
+        public ActionResult<AccountResponse> UpdateAccount(int id, UpdateRequest updateRequest)
+        {
+            if (Account.Role != Role.Admin || Account.Id != id)
+                return Unauthorized(new { message = "Unauthorized" });
+
+            return Ok(_accountService.Update(id, updateRequest));
+        }
+
+        [Authorize(Role.Admin)]
+        [HttpDelete("{id:int}")]
+        public ActionResult DeleteAccount(int id)
+        {
+            _accountService.Delete(id);
+            return Ok(new { message = "Delete account successfully" });
         }
 
         // helper methods

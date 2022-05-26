@@ -17,7 +17,7 @@ namespace AuthenticationAPI.Services
         public AccountResponse GetAccountById(int accountId);
         public IEnumerable<AccountResponse> GetAllAccounts();
         public AccountResponse Create(CreateRequest request);
-        public AccountResponse Update(UpdateRequest request);
+        public AccountResponse Update(int Id, UpdateRequest request);
         public void Delete(int Id);
 
         public Account GetAccountId(int accountId);
@@ -130,7 +130,9 @@ namespace AuthenticationAPI.Services
 
         public Account GetAccountId(int accountId)
         {
-            return _context.Accounts.FirstOrDefault(x => x.Id == accountId);
+            var account = _context.Accounts.FirstOrDefault(x => x.Id == accountId);
+            if (account == null) throw new KeyNotFoundException("Account not found");
+            return account;
         }
 
         public AccountResponse Create(CreateRequest request)
@@ -146,19 +148,28 @@ namespace AuthenticationAPI.Services
             return _mapper.Map<AccountResponse>(account);
         }
 
-        public AccountResponse Update(UpdateRequest request)
+        public AccountResponse Update(int Id, UpdateRequest request)
         {
+            var account = GetAccountId(Id);
 
+            _mapper.Map(request, account);
+
+            account.LastUpdatedDate = DateTime.UtcNow;
+
+            // account.PasswordHash = ...
+
+            _context.Update(account);
+            _context.SaveChanges();
+
+            return _mapper.Map<AccountResponse>(account);
         }
 
         public void Delete(int Id)
         {
-            _context.Remove(Id);
+            var account = GetAccountId(Id);
+            _context.Accounts.Remove(account);
             _context.SaveChanges();
         }
-
-
-
 
         // private methods
         private RefreshToken rotateRefreshToken(RefreshToken refreshToken, string ipAddress)

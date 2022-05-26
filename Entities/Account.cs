@@ -18,6 +18,7 @@ namespace AuthenticationAPI.Entities
 
 
         public DateTime CreatedDate => DateTime.UtcNow;
+        public DateTime? LastUpdatedDate { get; set; }
         public DateTime? ExpiredDate { get; set; }
 
 
