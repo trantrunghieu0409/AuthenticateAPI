@@ -4,6 +4,7 @@ using AuthenticationAPI.Helpers;
 using AuthenticationAPI.Models;
 using Microsoft.Extensions.Options;
 using AutoMapper;
+using System.Security.Cryptography;
 
 namespace AuthenticationAPI.Services
 {
@@ -12,6 +13,8 @@ namespace AuthenticationAPI.Services
         // authenticate
         public AuthenticateResponse Authenticate(AuthenticateRequest request, string ipAddress);
         public AuthenticateResponse RefreshToken(string token, string ipAddress);
+        public AccountResponse Register(RegisterRequest request);
+        public void Verify(VerifyRequest verifyRequest);
 
         // CRUD
         public AccountResponse GetAccountById(int accountId);
@@ -29,13 +32,15 @@ namespace AuthenticationAPI.Services
         private readonly JwtUtils _jwtUtils;
         private readonly AppSettings _appSettings;
         private readonly IMapper _mapper;
+        private readonly IEmailService _emailService;
 
-        public AccountService(DataContext context, JwtUtils jwtUtils, IMapper mapper, IOptions<AppSettings> appSettings)
+        public AccountService(DataContext context, JwtUtils jwtUtils, IMapper mapper, IOptions<AppSettings> appSettings, IEmailService emailService)
         {
             _context = context;
             _jwtUtils = jwtUtils;
             _mapper = mapper;
             _appSettings = appSettings.Value;
+            _emailService = emailService;
         }
 
         // authenticate methods
@@ -109,6 +114,36 @@ namespace AuthenticationAPI.Services
 
             // revoke token and save
             revokeRefreshToken(refreshToken, ipAddress);
+            _context.Update(account);
+            _context.SaveChanges();
+        }
+
+        public AccountResponse Register(RegisterRequest request) 
+        {
+            var account = _mapper.Map<Account>(request);
+
+            account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            account.Role = account.Id == 1 ? Role.Admin : Role.User; // admin is the first created/registered account
+
+            account.VerifyToken = generateRandomToken();
+
+            _context.Accounts.Add(account);
+            _context.SaveChanges();
+
+            sendVerifyEmail(account);
+
+            return _mapper.Map<AccountResponse>(account);
+        }
+
+        public void Verify(VerifyRequest verifyRequest)
+        {
+            var account = _context.Accounts.FirstOrDefault(x => x.VerifyToken == verifyRequest.Token);
+            if (account == null)
+                throw new AppException("Invalid token");
+
+            account.VerifyToken = null;
+            account.VerifyDate = DateTime.UtcNow;
+
             _context.Update(account);
             _context.SaveChanges();
         }
@@ -210,5 +245,25 @@ namespace AuthenticationAPI.Services
                                                  && x.CreatedDate.AddDays(_appSettings.RefreshTokenTTL) <= DateTime.UtcNow);
         }
 
+        private string generateRandomToken()
+        {
+            var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
+            
+            var isUniqueToken = !_context.Accounts.Any(x => x.Token == token);
+            if (!isUniqueToken)
+                return generateRandomToken();
+
+            return token;
+        }
+
+        private void sendVerifyEmail(Account account)
+        {
+            if (account.Email != null && account.VerifyToken != null)
+            {
+                string body = $"<p>Here is your verification token:</p><code>{account.VerifyToken}</code>";
+                // string body = $"<p>Click</p><a href='http://localhost:4000/verify?Token={account.VerifyToken}'>link</a> verify your account";
+                _emailService.Send(account.Email, "Verify account", body);
+            }
+        }
     }
 }

@@ -23,7 +23,9 @@ namespace AuthenticationAPI.Entities
 
 
         public bool IsExpired => DateTime.UtcNow >= ExpiredDate;
-        public bool IsActive => !IsExpired;
+        public bool IsVerified => VerifyDate != null;
+        public string? VerifyToken { get; set; }
+        public DateTime? VerifyDate { get; set; }
 
         [JsonIgnore]
         public List<RefreshToken>? RefreshTokens { get; set; }

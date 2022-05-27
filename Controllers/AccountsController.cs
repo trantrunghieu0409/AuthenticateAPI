@@ -37,6 +37,21 @@ namespace AuthenticationAPI.Controllers
             return response;
         }
 
+        [AllowAnonymous]
+        [HttpPost("register")]
+        public ActionResult<AccountResponse> Register(RegisterRequest registerRequest)
+        {
+            return Ok(_accountService.Register(registerRequest));
+        }
+
+        [AllowAnonymous]
+        [HttpPost("verify")]
+        public ActionResult Verify(VerifyRequest verifyRequest)
+        {
+            _accountService.Verify(verifyRequest);
+            return Ok(new { messsage = "Verify successfully! Login again to start!" });
+        }
+
         [Authorize(Role.Admin)]
         [HttpGet]
         public IEnumerable<AccountResponse> GetAllAccounts()

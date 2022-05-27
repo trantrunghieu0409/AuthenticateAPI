@@ -15,6 +15,8 @@ namespace AuthenticationAPI.Helpers
 
             CreateMap<CreateRequest, Account>();
 
+            CreateMap<RegisterRequest, Account>();
+
             CreateMap<UpdateRequest, Account>()
                 .ForAllMembers(x => x.Condition(
                     (src, dest, prop) =>
