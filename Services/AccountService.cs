@@ -13,7 +13,7 @@ namespace AuthenticationAPI.Services
         // authenticate
         public AuthenticateResponse Authenticate(AuthenticateRequest request, string ipAddress);
         public AuthenticateResponse RefreshToken(string token, string ipAddress);
-        public AccountResponse Register(RegisterRequest request);
+        public AccountResponse Register(RegisterRequest request, string ipAddress);
         public void Verify(VerifyRequest verifyRequest);
         public void ForgotPassword(ForgotPasswordRequest request);
         public void ResetPassword(ResetPasswordRequest request);
@@ -26,6 +26,7 @@ namespace AuthenticationAPI.Services
         public AccountResponse Update(int Id, UpdateRequest request);
         public void Delete(int Id);
 
+        public void VerifyNewLogin(NewLoginRequest request);
         public void ChangeTimeAliveToken(ChangeTimeAliveRequest request);
         public Account GetAccountId(int accountId);
     }
@@ -54,6 +55,19 @@ namespace AuthenticationAPI.Services
 
             if (account == null || !BCrypt.Net.BCrypt.Verify(request.Password, account.PasswordHash))
                 throw new AppException("Username or Password is Incorrect");
+
+            var ipAddressExists = (account.IpAddresses != null) ? account.IpAddresses.FirstOrDefault(x => x.Ip == ipAddress) : null;
+            if (ipAddressExists == null)
+            {
+                account.NewLoginToken = generateRandomToken();
+                account.NewLoginExpires = DateTime.UtcNow.AddMinutes(30);
+
+                _context.Accounts.Update(account);
+                _context.SaveChanges();
+
+                sendWarningLogin(account, ipAddress);
+                throw new AppException("Unknown login! Open your email and verify first");
+            }
 
             var jwtToken = _jwtUtils.GenerateToken(account);
             var refreshToken = _jwtUtils.generateRefreshToken(ipAddress);
@@ -122,7 +136,7 @@ namespace AuthenticationAPI.Services
             _context.SaveChanges();
         }
 
-        public AccountResponse Register(RegisterRequest request) 
+        public AccountResponse Register(RegisterRequest request, string ipAddress) 
         {
             var accountExists = getByEmail(request.Email);
             if (accountExists != null)
@@ -134,6 +148,13 @@ namespace AuthenticationAPI.Services
             account.Role = account.Id == 1 ? Role.Admin : Role.User; // admin is the first created/registered account
 
             account.VerifyToken = generateRandomToken();
+            
+            var newIp = new IpAddress { Ip = ipAddress };
+
+            if (account.IpAddresses == null)
+                account.IpAddresses = new List<IpAddress> { newIp };
+            else
+                account.IpAddresses.Add(newIp); // save the ipAddress which is used to register
 
             _context.Accounts.Add(account);
             _context.SaveChanges();
@@ -183,6 +204,23 @@ namespace AuthenticationAPI.Services
             _context.Update(account);
             _context.SaveChanges();
         }
+
+        public void VerifyNewLogin(NewLoginRequest request)
+        {
+            var account = _context.Accounts.SingleOrDefault(x => x.NewLoginToken == request.Token);
+            if (account == null || account.NewLoginExpires < DateTime.UtcNow)
+                throw new AppException("Invalid/Expired token");
+
+            account.NewLoginToken = null;
+            var newIp = new IpAddress { Ip = request.IpAddress };
+            if (account.IpAddresses == null)
+                account.IpAddresses = new List<IpAddress> { newIp };
+            else 
+                account.IpAddresses.Add(newIp);
+
+            _context.Update(account);
+            _context.SaveChanges();
+        } 
 
         // CRUD methods
         public AccountResponse GetAccountById(int accountId)
@@ -324,6 +362,16 @@ namespace AuthenticationAPI.Services
         public void ChangeTimeAliveToken(ChangeTimeAliveRequest request)
         {
             _jwtUtils.ChangeTokenAliveTime(request.time);
+        }
+
+        private void sendWarningLogin(Account account, string ipAddress)
+        {
+            if (account.Email != null && account.NewLoginToken != null)
+            {
+                string body = $"<p>Someone is trying to access to your account: {ipAddress}</p>" +
+                $"<p>If you are the one logined, use this token to verify: {account.NewLoginToken}</p>";
+                _emailService.Send(account.Email, "Unkown login", body);
+            }
         }
     }
 }

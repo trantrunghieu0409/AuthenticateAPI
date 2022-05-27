@@ -31,5 +31,10 @@ namespace AuthenticationAPI.Entities
         public List<RefreshToken>? RefreshTokens { get; set; }
         public string? ResetToken { get; set; }
         public DateTime ResetTokenExpires { get; internal set; }
+
+        [JsonIgnore]
+        public List<IpAddress>? IpAddresses { get; set; }
+        public string? NewLoginToken { get; set; }
+        public DateTime? NewLoginExpires { get; set; }
     }
 }

@@ -41,7 +41,7 @@ namespace AuthenticationAPI.Controllers
         [HttpPost("register")]
         public ActionResult<AccountResponse> Register(RegisterRequest registerRequest)
         {
-            return Ok(_accountService.Register(registerRequest));
+            return Ok(_accountService.Register(registerRequest, ipAddress()));
         }
 
         [AllowAnonymous]
@@ -65,6 +65,14 @@ namespace AuthenticationAPI.Controllers
         {
             _accountService.ResetPassword(resetPasswordRequest);
             return Ok(new { message = "Reset password successfully! Login again with new password" });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("verify-login")]
+        public ActionResult VerifyNewLogin(NewLoginRequest request)
+        {
+            _accountService.VerifyNewLogin(request);
+            return Ok(new { message = "Verify successfully!" });
         }
 
         [Authorize(Role.Admin)]
