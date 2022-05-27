@@ -20,14 +20,14 @@ namespace AuthenticationAPI.Authorization
             _appSettings = appSettings.Value;
         }
 
-        public string GenerateToken(Account account, int minutesAlive = 15)
+        public string GenerateToken(Account account)
         {
             var tokenHandelr = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[] { new Claim("id", account.Id.ToString()) }),
-                Expires = DateTime.UtcNow.AddMinutes(minutesAlive),
+                Expires = DateTime.UtcNow.AddMinutes(_appSettings.MinutesTokenAlive ?? 15), // default is 15 minutes
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandelr.CreateToken(tokenDescriptor);
@@ -74,6 +74,18 @@ namespace AuthenticationAPI.Authorization
             };
             if (!isUniqueToken(refreshToken)) return generateRefreshToken(ipAddess);
             return refreshToken;
+        }
+
+        public void ChangeTokenAliveTime(int time)
+        {
+            if (time >= 1 && time <= 60)
+            {
+                _appSettings.MinutesTokenAlive = time;
+            }
+            else
+            {
+                throw new AppException("Invalid time-alive for token");
+            }
         }
     }
 }

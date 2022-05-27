@@ -52,6 +52,21 @@ namespace AuthenticationAPI.Controllers
             return Ok(new { messsage = "Verify successfully! Login again to start!" });
         }
 
+        [AllowAnonymous]
+        [HttpPost("forgot-password")]
+        public ActionResult ForgotPassword(ForgotPasswordRequest forgotPasswordRequest)
+        {
+            _accountService.ForgotPassword(forgotPasswordRequest);
+            return Ok(new { message = "Check your email for reset token" });
+        }
+
+        [AllowAnonymous, HttpPost("reset-password")]
+        public ActionResult ResetPassword(ResetPasswordRequest resetPasswordRequest)
+        {
+            _accountService.ResetPassword(resetPasswordRequest);
+            return Ok(new { message = "Reset password successfully! Login again with new password" });
+        }
+
         [Authorize(Role.Admin)]
         [HttpGet]
         public IEnumerable<AccountResponse> GetAllAccounts()
@@ -90,6 +105,14 @@ namespace AuthenticationAPI.Controllers
             return Ok(new { message = "Delete account successfully" });
         }
 
+        [Authorize(Role.Admin)]
+        [HttpPost("time-alive")]
+        public ActionResult ChangeTokenTimeAlive(ChangeTimeAliveRequest changeTimeAliveRequest)
+        {
+            _accountService.ChangeTimeAliveToken(changeTimeAliveRequest);
+            return Ok(new { message = "Change successfully" });
+        }
+
         // helper methods
         private string ipAddress()
         {
@@ -98,6 +121,7 @@ namespace AuthenticationAPI.Controllers
             else
                 return HttpContext.Connection.RemoteIpAddress.MapToIPv4().ToString();
         }
+
 
         private void setTokenCookie(string refreshToken)
         {

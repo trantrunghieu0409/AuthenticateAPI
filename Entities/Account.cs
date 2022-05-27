@@ -29,5 +29,7 @@ namespace AuthenticationAPI.Entities
 
         [JsonIgnore]
         public List<RefreshToken>? RefreshTokens { get; set; }
+        public string? ResetToken { get; set; }
+        public DateTime ResetTokenExpires { get; internal set; }
     }
 }

@@ -4,6 +4,7 @@
     {
         public string Secret { get; set; }
 
+        public int? MinutesTokenAlive { get; set; }
         public int RefreshTokenTTL { get; set; }
 
         public string EmailFrom { get; set; }

@@ -15,6 +15,9 @@ namespace AuthenticationAPI.Services
         public AuthenticateResponse RefreshToken(string token, string ipAddress);
         public AccountResponse Register(RegisterRequest request);
         public void Verify(VerifyRequest verifyRequest);
+        public void ForgotPassword(ForgotPasswordRequest request);
+        public void ResetPassword(ResetPasswordRequest request);
+
 
         // CRUD
         public AccountResponse GetAccountById(int accountId);
@@ -23,6 +26,7 @@ namespace AuthenticationAPI.Services
         public AccountResponse Update(int Id, UpdateRequest request);
         public void Delete(int Id);
 
+        public void ChangeTimeAliveToken(ChangeTimeAliveRequest request);
         public Account GetAccountId(int accountId);
     }
 
@@ -120,6 +124,10 @@ namespace AuthenticationAPI.Services
 
         public AccountResponse Register(RegisterRequest request) 
         {
+            var accountExists = getByEmail(request.Email);
+            if (accountExists != null)
+                throw new AppException("Email existed");
+
             var account = _mapper.Map<Account>(request);
 
             account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
@@ -148,6 +156,34 @@ namespace AuthenticationAPI.Services
             _context.SaveChanges();
         }
 
+        public void ForgotPassword(ForgotPasswordRequest request)
+        {
+            var account = getByEmail(request.Email);
+            if (account == null)
+                throw new AppException("Email not found");
+
+            account.ResetToken = generateRandomToken();
+            account.ResetTokenExpires = DateTime.UtcNow.AddMinutes(30);
+
+            _context.Update(account);
+            _context.SaveChanges();
+
+            sendForgotPassword(account);
+        }
+
+        public void ResetPassword(ResetPasswordRequest request)
+        {
+            var account = _context.Accounts.SingleOrDefault(x => x.ResetToken == request.Token);
+            if (account == null || account.ResetTokenExpires < DateTime.UtcNow)
+                throw new AppException("Invalid/Expired token");
+
+            account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            account.ResetToken = null;
+
+            _context.Update(account);
+            _context.SaveChanges();
+        }
+
         // CRUD methods
         public AccountResponse GetAccountById(int accountId)
         {
@@ -162,7 +198,6 @@ namespace AuthenticationAPI.Services
             return _mapper.Map<IList<AccountResponse>>(accounts);
         }
 
-
         public Account GetAccountId(int accountId)
         {
             var account = _context.Accounts.FirstOrDefault(x => x.Id == accountId);
@@ -172,6 +207,11 @@ namespace AuthenticationAPI.Services
 
         public AccountResponse Create(CreateRequest request)
         {
+
+            var accountExists = getByEmail(request.Email);
+            if (accountExists != null)
+                throw new AppException("Email existed");
+
             var account = _mapper.Map<Account>(request);
 
             account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
@@ -213,6 +253,12 @@ namespace AuthenticationAPI.Services
 
             revokeRefreshToken(refreshToken, ipAddress);
             return newRefreshToken;
+        }
+
+        private Account? getByEmail(string email)
+        {
+            var account = _context.Accounts.SingleOrDefault(x => x.Email == email);
+            return account;
         }
 
         private void revokeRefreshToken(RefreshToken token, string ipAddress, string newToken = null)
@@ -264,6 +310,20 @@ namespace AuthenticationAPI.Services
                 // string body = $"<p>Click</p><a href='http://localhost:4000/verify?Token={account.VerifyToken}'>link</a> verify your account";
                 _emailService.Send(account.Email, "Verify account", body);
             }
+        }
+
+        private void sendForgotPassword(Account account)
+        {
+            if (account.Email != null && account.ResetToken != null)
+            {
+                string body = $"<p>Here is your reset token:</p><code>{account.ResetToken}</code>";
+                _emailService.Send(account.Email, "Forgot password", body);
+            }
+        }
+
+        public void ChangeTimeAliveToken(ChangeTimeAliveRequest request)
+        {
+            _jwtUtils.ChangeTokenAliveTime(request.time);
         }
     }
 }
